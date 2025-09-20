@@ -29,35 +29,37 @@ target 'Runner' do
 end
 
 post_install do |installer|
-  # Try Flutter defaults but don't crash if helper API changes between Flutter/CocoaPods versions
+  # Try Flutter defaults but don't crash if helper API changes
   begin
     flutter_additional_ios_build_settings(installer)
   rescue => e
     puts "Warning: Skipped flutter_additional_ios_build_settings: #{e}"
   end
 
-  # Ensure all pods (and especially Flutter) present a Swift-importable module and can find Flutter headers/frameworks
+  # Make sure every pod (and especially Flutter) is importable from Swift
   installer.pods_project.targets.each do |t|
     t.build_configurations.each do |config|
       config.build_settings['SWIFT_VERSION'] = '5.0'
       config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
       config.build_settings['DEFINES_MODULE'] = 'YES'
-      config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'NO'
-      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-      # Make sure header and framework search paths include Flutter pod locations
-      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public ${PODS_ROOT}/Headers/Public/Flutter'
-      config.build_settings['FRAMEWORK_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Flutter ${PODS_CONFIGURATION_BUILD_DIR}/Flutter'
+      config.build_settings['USE_HEADERMAP'] = 'YES'
+
+      # The key fix: recursive search so Xcode finds Flutter.xcframework and its module map
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/**'
+      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public/**'
+
+      # Ensure nothing excludes arm64 device
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphoneos*]'] = ''
       config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = '$(inherited) @executable_path/Frameworks'
     end
   end
 
-  # Double-confirm the Flutter pod is a proper module for Swift
+  # Double-confirm the Flutter pod itself defines a module
   flutter_target = installer.pods_project.targets.find { |t| t.name == 'Flutter' }
   if flutter_target
     flutter_target.build_configurations.each do |config|
       config.build_settings['DEFINES_MODULE'] = 'YES'
       config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
-      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
     end
   end
 end
