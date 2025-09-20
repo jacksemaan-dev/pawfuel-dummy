@@ -1,18 +1,39 @@
-import "dart:async";
-import "package:flutter/material.dart";
-import "package:webview_flutter/webview_flutter.dart";
+import 'dart:async';
+import 'package:flutter/material.dart';
+
+// WebView explicit platform binding for iOS
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (details) {
-    // Still print, but don’t crash release
-    Zone.current.handleUncaughtError(details.exception, details.stack ?? StackTrace.empty);
+
+  // Force WKWebView on iOS to avoid null-platform / timing crashes
+  try {
+    WebViewPlatform.instance = WebKitWebViewPlatform();
+  } catch (_) {
+    // Safe on Android or when already initialized
+  }
+
+  // Report Flutter errors to Zone so TestFlight symbolicates them
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    Zone.current.handleUncaughtError(
+      details.exception,
+      details.stack ?? StackTrace.empty,
+    );
   };
-  runZonedGuarded(() => runApp(const MyApp()), (e, s) {});
+
+  runZonedGuarded(() {
+    runApp(const MyApp());
+  }, (error, stack) {
+    // Optional: print('Uncaught: $error\n$stack');
+  });
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
@@ -24,6 +45,7 @@ class MyApp extends StatelessWidget {
 
 class WebShell extends StatefulWidget {
   const WebShell({super.key});
+
   @override
   State<WebShell> createState() => _WebShellState();
 }
@@ -35,20 +57,27 @@ class _WebShellState extends State<WebShell> {
   @override
   void initState() {
     super.initState();
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFFFFFFF))
-      ..setNavigationDelegate(NavigationDelegate(
-        onWebResourceError: (err) {
-          setState(() {
-            errorText = "WebView error ${err.errorCode}: ${err.description}";
-          });
-        },
-      ));
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onWebResourceError: (err) {
+            setState(() {
+              errorText = "WebView error ${err.errorCode}: ${err.description}";
+            });
+          },
+        ),
+      );
 
-    // Try to load the local HTML asset
-    _controller.loadFlutterAsset('assets/www/index.html').catchError((e) {
-      setState(() { errorText = "Failed to load local index.html: $e"; });
+    // Try to load the local HTML asset after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.loadFlutterAsset('assets/www/index.html').catchError((e) {
+        setState(() {
+          errorText = "Failed to load local index.html: $e";
+        });
+      });
     });
   }
 
@@ -68,6 +97,10 @@ class _WebShellState extends State<WebShell> {
         ),
       );
     }
-    return Scaffold(body: SafeArea(child: WebViewWidget(controller: _controller)));
+    return Scaffold(
+      body: SafeArea(
+        child: WebViewWidget(controller: _controller),
+      ),
+    );
   }
 }
