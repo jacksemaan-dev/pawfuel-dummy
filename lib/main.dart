@@ -1,9 +1,14 @@
-ï»¿import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import "dart:async";
+import "package:flutter/material.dart";
+import "package:webview_flutter/webview_flutter.dart";
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  FlutterError.onError = (details) {
+    // Still print, but don’t crash release
+    Zone.current.handleUncaughtError(details.exception, details.stack ?? StackTrace.empty);
+  };
+  runZonedGuarded(() => runApp(const MyApp()), (e, s) {});
 }
 
 class MyApp extends StatelessWidget {
@@ -12,85 +17,57 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: WebHost(),
+      home: WebShell(),
     );
   }
 }
 
-class WebHost extends StatefulWidget {
-  const WebHost({super.key});
+class WebShell extends StatefulWidget {
+  const WebShell({super.key});
   @override
-  State<WebHost> createState() => _WebHostState();
+  State<WebShell> createState() => _WebShellState();
 }
 
-class _WebHostState extends State<WebHost> {
-  late final InAppLocalhostServer _server;
-  final int _port = 8080; // standard local port
-  InAppWebViewController? _controller;
-  bool _serverReady = false;
+class _WebShellState extends State<WebShell> {
+  late final WebViewController _controller;
+  String? errorText;
 
   @override
   void initState() {
     super.initState();
-    _server = InAppLocalhostServer(documentRoot: 'assets/www', port: _port);
-    _startServer();
-  }
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFFFFFFFF))
+      ..setNavigationDelegate(NavigationDelegate(
+        onWebResourceError: (err) {
+          setState(() {
+            errorText = "WebView error ${err.errorCode}: ${err.description}";
+          });
+        },
+      ));
 
-  Future<void> _startServer() async {
-    try {
-      await _server.start();
-      _serverReady = true;
-      if (mounted) setState(() {});
-      _tryLoad();
-    } catch (_) {
-      // small retry in case of race conditions
-      await Future.delayed(const Duration(milliseconds: 300));
-      try {
-        await _server.start();
-        _serverReady = true;
-        if (mounted) setState(() {});
-        _tryLoad();
-      } catch (_) {}
-    }
-  }
-
-  void _tryLoad() {
-    final c = _controller;
-    if (!_serverReady || c == null) return;
-    final url = WebUri('http://127.0.0.1:/index.html'); // change path if your entry differs
-    c.loadUrl(urlRequest: URLRequest(url: url));
-  }
-
-  @override
-  void dispose() {
-    _server.close();
-    super.dispose();
+    // Try to load the local HTML asset
+    _controller.loadFlutterAsset('assets/www/index.html').catchError((e) {
+      setState(() { errorText = "Failed to load local index.html: $e"; });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: InAppWebView(
-          onWebViewCreated: (ctrl) {
-            _controller = ctrl;
-            _tryLoad();
-          },
-          initialSettings: InAppWebViewSettings(
-            javaScriptEnabled: true,
-            clearCache: false,
-            allowFileAccessFromFileURLs: true,
-            allowUniversalAccessFromFileURLs: true,
-            mediaPlaybackRequiresUserGesture: false,
+    if (errorText != null) {
+      return Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              "PawFuel couldn’t start the UI.\n\n$errorText\n\n"
+              "Check that assets/www/index.html exists and is listed under `assets:` in pubspec.yaml.",
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
-          onLoadError: (c, u, code, msg) {
-            debugPrint("LOAD ERROR:   @ ");
-          },
-          onConsoleMessage: (c, m) {
-            debugPrint("CONSOLE:  ");
-          },
         ),
-      ),
-    );
+      );
+    }
+    return Scaffold(body: SafeArea(child: WebViewWidget(controller: _controller)));
   }
 }
