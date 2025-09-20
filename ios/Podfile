@@ -1,4 +1,4 @@
-platform :ios, '14.0'
+platform :ios, '13.0' # match what Flutter auto-upgrades to
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -24,30 +24,34 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # Standard Flutter plugin integration (no use_frameworks!)
+  # Build as dynamic frameworks so Swift modules are visible (fixes: No such module 'Flutter')
+  use_frameworks!
+
+  # Explicitly declare the Flutter pod so it’s a proper framework in the Pods project
+  pod 'Flutter', :path => 'Flutter'
+
+  # Standard Flutter plugin integration
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
-  # Try Flutter defaults, but don't crash if helper mismatches CocoaPods
+  # Apply Flutter’s defaults if possible; don’t crash CI if helper API shifts
   begin
     flutter_additional_ios_build_settings(installer)
   rescue => e
     puts "Warning: Skipped flutter_additional_ios_build_settings: #{e}"
   end
 
-  # Ensure Swift modules & search paths so plugins can 'import Flutter'
+  # Make sure Swift modules are generated across the board
   installer.pods_project.targets.each do |t|
     t.build_configurations.each do |config|
       config.build_settings['SWIFT_VERSION'] = '5.0'
       config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
       config.build_settings['DEFINES_MODULE'] = 'YES'
-      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public ${PODS_ROOT}/Headers/Public/Flutter'
-      config.build_settings['FRAMEWORK_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Flutter ${PODS_CONFIGURATION_BUILD_DIR}/Flutter'
     end
   end
 
-  # Explicitly mark the Flutter pod as a module
+  # Double-ensure the Flutter pod is a module for import in Swift
   flutter_target = installer.pods_project.targets.find { |t| t.name == 'Flutter' }
   if flutter_target
     flutter_target.build_configurations.each do |config|
