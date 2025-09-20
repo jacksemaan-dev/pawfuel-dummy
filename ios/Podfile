@@ -24,27 +24,34 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # Build plugins as static frameworks and expose Swift modules
-  use_frameworks! :linkage => :static
-  use_modular_headers!
-
-  # Standard Flutter plugin integration
+  # DO NOT enable use_frameworks! here; Flutter + most plugins work best without it.
+  # Standard Flutter plugin integration:
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
-  # Guard against helper mismatches but still apply defaults when possible
+  # Try Flutter's defaults but don't crash if helper mismatches CocoaPods
   begin
     flutter_additional_ios_build_settings(installer)
   rescue => e
     puts "Warning: Skipped flutter_additional_ios_build_settings: #{e}"
   end
 
-  # Ensure Swift is set and modules are generated for all pods
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
+  # Ensure Swift modules are generated so plugins can `import Flutter`
+  installer.pods_project.targets.each do |t|
+    t.build_configurations.each do |config|
       config.build_settings['SWIFT_VERSION'] = '5.0'
+      config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
       config.build_settings['DEFINES_MODULE'] = 'YES'
+    end
+  end
+
+  # Explicitly mark the Flutter pod as a module (this fixes: No such module 'Flutter')
+  flutter_target = installer.pods_project.targets.find { |t| t.name == 'Flutter' }
+  if flutter_target
+    flutter_target.build_configurations.each do |config|
+      config.build_settings['DEFINES_MODULE'] = 'YES'
+      config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
     end
   end
 end
