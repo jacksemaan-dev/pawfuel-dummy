@@ -28,5 +28,9 @@ target 'Runner' do
 end
 
 post_install do |installer|
-  flutter_additional_ios_build_settings(installer)
+  begin
+    flutter_additional_ios_build_settings(installer)
+  rescue => e
+    puts "Warning: Skipped flutter_additional_ios_build_settings: #{e}"
+  end
 end
