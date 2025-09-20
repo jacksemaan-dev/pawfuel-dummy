@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>PawFuel • Staging</string>
+    <key>CFBundleIdentifier</key><string>com.pawfuel.app.staging</string>
+    <key>CFBundleDisplayName</key><string>PawFuel • Staging</string>
+    <key>UILaunchStoryboardName</key><string>LaunchScreen</string>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key><false/>
+    </dict>
+
+    <!-- Config keys read by Config.swift -->
+    <key>APP_ENV</key><string>$(APP_ENV)</string>
+    <key>SERVER_BASE_URL</key><string>$(SERVER_BASE_URL)</string>
+    <key>BILLING_START_AT</key><string>$(BILLING_START_AT)</string>
+    <key>USER_PRICE_MONTHLY</key><string>$(USER_PRICE_MONTHLY)</string>
+    <key>USER_PRICE_ANNUAL</key><string>$(USER_PRICE_ANNUAL)</string>
+    <key>SHOP_PRICE_MONTHLY</key><string>$(SHOP_PRICE_MONTHLY)</string>
+    <key>SHOP_PRICE_ANNUAL</key><string>$(SHOP_PRICE_ANNUAL)</string>
+    <key>SHOP_COMMISSION_RATE</key><string>$(SHOP_COMMISSION_RATE)</string>
+    <key>LOYALTY_DISCOUNT_MONTHS</key><string>$(LOYALTY_DISCOUNT_MONTHS)</string>
+    <key>LOYALTY_DISCOUNT_RATE</key><string>$(LOYALTY_DISCOUNT_RATE)</string>
+
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key><true/>
+    </dict>
+</dict>
+</plist>

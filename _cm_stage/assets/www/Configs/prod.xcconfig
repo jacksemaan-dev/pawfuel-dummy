@@ -1,0 +1,15 @@
+// === PROD target overrides ===
+APP_ENV = prod
+SERVER_BASE_URL = https://app.pawfuel.app
+// Billing switch (Year 1 free → billing starts)
+BILLING_START_AT = 2026-09-18T00:00:00Z
+// User pricing
+USER_PRICE_MONTHLY = 1.99
+USER_PRICE_ANNUAL = 18
+// Shop pricing + commission
+SHOP_PRICE_MONTHLY = 10
+SHOP_PRICE_ANNUAL = 90
+SHOP_COMMISSION_RATE = 0.03
+// Loyalty discount
+LOYALTY_DISCOUNT_MONTHS = 3
+LOYALTY_DISCOUNT_RATE = 0.5

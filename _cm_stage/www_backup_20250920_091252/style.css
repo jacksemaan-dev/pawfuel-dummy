@@ -1,0 +1,313 @@
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #f3f3f3;
+}
+body {
+  background-color: #1b1b1b;
+  background-size: cover;
+  background-position: center;
+  transition: background-image 0.4s ease-in-out;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+nav#navBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2b2b2b;
+  padding: 0.5rem;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+nav#navBar button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #ddd;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem;
+}
+nav#navBar button.active {
+  color: #ffcc66;
+}
+.paw-icon {
+  font-size: 1.5rem;
+}
+.nav-label {
+  font-size: 0.7rem;
+}
+
+/* Launch banner styling */
+.banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #ff8c42;
+  color: #1b1b1b;
+  z-index: 50;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.banner.hidden {
+  display: none;
+}
+
+.banner button {
+  border: none;
+  border-radius: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  margin-left: 0.5rem;
+  background-color: #2b2b2b;
+  color: #ffcc66;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.banner .close-btn {
+  background-color: transparent;
+  color: inherit;
+  font-size: 1rem;
+  margin-left: 0.5rem;
+}
+
+/* RTL support: set direction on html element */
+[dir="rtl"] body {
+  direction: rtl;
+}
+main#pages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  padding-bottom: 3.5rem; /* account for nav bar */
+}
+.page.hidden {
+  display: none;
+}
+.hero {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.hero h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+.hero p {
+  margin-top: 0.25rem;
+  font-style: italic;
+  color: #ccc;
+}
+.card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(6px);
+}
+button.primary, label.primary {
+  display: inline-block;
+  margin: 0.25rem 0;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #ff8c42;
+  color: #1b1b1b;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+button.secondary, label.secondary {
+  display: inline-block;
+  margin: 0.25rem 0;
+  padding: 0.5rem 1rem;
+  border: 1px solid #444;
+  border-radius: 0.5rem;
+  background-color: #2b2b2b;
+  color: #ccc;
+  font-weight: 500;
+  cursor: pointer;
+}
+button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+form input, form select, form textarea {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem;
+  border-radius: 0.25rem;
+  border: 1px solid #444;
+  background-color: #2b2b2b;
+  color: #eee;
+}
+form label {
+  display: block;
+  margin: 0.3rem 0 0.1rem;
+  font-size: 0.85rem;
+  color: #bbb;
+}
+
+/*
+ * Modals/dialogs should be easy to read.  When displaying product details
+ * or pro‑upgrade messages we wrap the content in an element with class
+ * `dialog`.  Give these a darker background with light text and some
+ * padding so they stand out against the overlay.
+ */
+.dialog {
+  /* Use an opaque dark backdrop to maximise contrast with the text.  We set
+   * the alpha channel slightly lower so photographic backgrounds don’t
+   * show through and make the text hard to read.  The border radius and
+   * padding create breathing room and help the dialog pop from the page. */
+  background-color: rgba(0, 0, 0, 0.85);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  max-width: 90vw;
+  /* Use a very light text colour for better contrast on the dark back­drop */
+  color: #f0f0f0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+}
+
+/* Paragraphs inside dialogs should wrap nicely and have better contrast */
+.dialog p {
+  line-height: 1.5;
+  /* Use a very light grey for paragraphs to ensure sufficient contrast on
+   * the dark backdrop. */
+  color: #efefef;
+  margin-bottom: 0.5rem;
+}
+
+/*
+ * Headings within dialogs should be distinct.  Use a warm accent colour
+ * for the title to tie into the Pro call‑out colours elsewhere.
+ */
+.dialog h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #ffcc66;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Bold text inside dialogs should also use the accent colour for consistency */
+.dialog strong {
+  color: #ffcc66;
+}
+
+/* Inline adjust buttons in the inventory table.  These controls allow the
+ * user to quickly add or subtract a single pack from the stock.  The
+ * buttons are small and adopt the accent colour so they stand out
+ * against the dark table. */
+.adjust {
+  font-size: 0.9rem;
+  line-height: 1rem;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.2rem;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: #ff8c42;
+  color: #1b1b1b;
+  cursor: pointer;
+}
+.adjust:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Display the stock value inline with adjust buttons */
+.stock-value {
+  margin-right: 0.3rem;
+}
+
+/* Disclaimer styling for the settings page */
+.disclaimer {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+
+/*
+ * Make the Pro version checkbox visible on dark backgrounds.
+ * Without styling, the native checkbox blends into the page and is hard to click.
+ */
+#settingsPage input[type="checkbox"] {
+  /* Make the Pro toggle more prominent on mobile and desktop.  Increase
+   * the checkbox size and use the primary accent colour for the tick. */
+  width: 1.3rem;
+  height: 1.3rem;
+  accent-color: #ff8c42; /* use the primary accent colour for the tick */
+  margin-right: 0.5rem;
+}
+
+/* Align labels containing checkboxes with their text nicely */
+#settingsPage label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Style the text of checkbox labels (e.g. Pro version) so it stands out
+ * against the dark background.  Target spans that immediately follow
+ * checkboxes in the preferences form.  Use a slightly larger font and
+ * lighter colour for readability. */
+#prefForm label.pro-toggle input[type="checkbox"] + span {
+  /* Make the Pro label more legible and distinct.  Increase the font size
+   * and emphasise the price by colouring the <strong> elements with the accent
+   * colour. */
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Colour the strong elements within the Pro label using the accent colour */
+.pro-toggle span strong {
+  color: #ffcc66;
+}
+
+/* Background overlay for hero/wolf theme */
+.wolf-background-1 {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" preserveAspectRatio="none"><rect fill="%231b1b1b" width="200" height="200"/><path d="M100 20 L120 80 L180 80 L130 110 L150 180 L100 140 L50 180 L70 110 L20 80 L80 80 Z" fill="%23333"/></svg>');
+}
+.wolf-background-2 {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" preserveAspectRatio="none"><rect fill="%231b1b1b" width="200" height="200"/><circle cx="100" cy="100" r="80" fill="%23333"/><path d="M90 60 L110 60 L120 90 L80 90 Z" fill="%23222"/><path d="M70 100 L130 100 L130 120 L70 120 Z" fill="%23222"/></svg>');
+}
+.wolf-background-3 {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" preserveAspectRatio="none"><rect fill="%231b1b1b" width="200" height="200"/><path d="M50 30 L150 30 L175 150 L100 170 L25 150 Z" fill="%23333"/></svg>');
+}
+.wolf-background-4 {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" preserveAspectRatio="none"><rect fill="%231b1b1b" width="200" height="200"/><path d="M100 30 L120 90 L170 100 L130 130 L150 170 L100 150 L50 170 L70 130 L30 100 L80 90 Z" fill="%23333"/></svg>');
+}
+
+/* Real photograph background option.  This uses the processed wolf image provided by the user.
+ * It fills the entire viewport and centers the wolf while blurring the sides using the canvas.
+ */
+.wolf-photo-bg {
+  background-image: url('wolf_background.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Additional classes for dynamic backgrounds will be applied via JS */

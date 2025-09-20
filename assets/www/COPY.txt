@@ -1,0 +1,9 @@
+BANNERS / PRICING COPY (EN):
+- Headline: Free for its first year online.
+- Body: Lock $18/year if you prepay. Otherwise $1.99/month starts after the anniversary. Loyal users get 50% off for the first 3 months.
+- Shops: $10/month or $90/year prepaid, plus 3% commission per order after the anniversary.
+
+BANNERS / PRICING COPY (AR):
+- العنوان: مجانًا للسنة الأولى من تاريخ الإطلاق.
+- النص: ثبّت 18$ سنويًا بالدفع المسبق. وإلا يبدأ 1.99$ شهريًا بعد الذكرى السنوية. المستخدمون الأوفياء يحصلون على خصم 50% لأول 3 أشهر.
+- المتاجر: 10$ شهريًا أو 90$ سنويًا بالدفع المسبق، مع عمولة 3% على كل طلب بعد الذكرى السنوية.

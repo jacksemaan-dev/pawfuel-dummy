@@ -1,0 +1,1 @@
+This folder stores legal documents (Privacy Policy and Terms of Use) for the PawFuel app.  The PDFs are generated from bilingual Markdown sources using Pandoc.  The documents are referenced from the app via relative paths.

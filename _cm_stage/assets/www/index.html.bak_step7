@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="./">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./style.css" />
+  <title>PawFuel</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Launch banner (hidden by default) -->
+    <div id="launchBanner" class="banner hidden"></div>
+    <!-- Navigation bar -->
+    <nav id="navBar">
+      <button data-page="home"><span class="paw-icon">🐾</span><span class="nav-label">Home</span></button>
+      <button data-page="inventory"><span class="paw-icon">📦</span><span class="nav-label">Inventory</span></button>
+      <button data-page="stool"><span class="paw-icon">💩</span><span class="nav-label">Stool</span></button>
+      <button data-page="plates"><span class="paw-icon">🍽️</span><span class="nav-label">Plates</span></button>
+      <button data-page="insights"><span class="paw-icon">📊</span><span class="nav-label">Insights</span></button>
+      <button data-page="orders"><span class="paw-icon">🛒</span><span class="nav-label">Orders</span></button>
+      <button data-page="settings"><span class="paw-icon">⚙️</span><span class="nav-label">Settings</span></button>
+      <!-- Account page navigation -->
+      <button data-page="account"><span class="paw-icon">👤</span><span class="nav-label">Account</span></button>
+    </nav>
+    <!-- Pages container -->
+    <main id="pages">
+      <section id="homePage" class="page hidden">
+        <div class="hero">
+          <h1>PawFuel</h1>
+          <!-- Motto emphasises the ancestral diet philosophy -->
+          <p id="motto">Fuel them like nature intended</p>
+        </div>
+        <div id="mealCard" class="card"></div>
+        <div id="coachCard" class="card"></div>
+      </section>
+      <section id="inventoryPage" class="page hidden">
+        <h2>Inventory</h2>
+        <div id="inventoryList"></div>
+        <button id="addStockBtn" class="primary">Add Stock</button>
+        <button id="addProductBtn" class="secondary">Add Product</button>
+      </section>
+      <section id="stoolPage" class="page hidden">
+        <h2>Stool Analysis</h2>
+        <div id="stoolResult" class="card"></div>
+        <label for="stoolInput" class="primary">Analyse Stool Photo
+          <input id="stoolInput" type="file" accept="image/*" style="display:none" />
+        </label>
+      </section>
+      <section id="platesPage" class="page hidden">
+        <h2>Plates Tutorials</h2>
+        <div id="platesList"></div>
+      </section>
+      <section id="insightsPage" class="page hidden">
+        <h2>Insights</h2>
+        <div id="insightsContent"></div>
+      </section>
+      <section id="ordersPage" class="page hidden">
+        <h2>Orders</h2>
+        <div id="ordersContent"></div>
+        <button id="orderBtn" class="primary">Copy Order List</button>
+      </section>
+      <section id="settingsPage" class="page hidden">
+        <h2>Settings</h2>
+        <div id="settingsContent"></div>
+      </section>
+
+      <!-- Account page for sign up/in/out -->
+      <section id="accountPage" class="page hidden">
+        <!-- Content populated dynamically by app.js -->
+      </section>
+
+      <!-- Onboarding wizard page -->
+      <section id="onboardingPage" class="page hidden">
+        <!-- Multi‑step onboarding wizard populated via app.js -->
+      </section>
+
+      <!-- FAQs page -->
+      <section id="faqsPage" class="page hidden">
+        <h2>FAQs</h2>
+        <div id="faqsContent"></div>
+      </section>
+
+      <!-- Studies page -->
+      <section id="studiesPage" class="page hidden">
+        <h2>Studies</h2>
+        <div id="studiesContent"></div>
+      </section>
+    </main>
+  </div>
+  <!-- Load the embedded product catalogue before the main app script.  This
+       defines window.embeddedCatalog for use in app.js. -->
+  <script src="assets/embedded_catalog.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

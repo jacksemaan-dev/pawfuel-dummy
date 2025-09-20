@@ -1,0 +1,62 @@
+﻿import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+
+void main() => runApp(const PawFuelApp());
+
+class PawFuelApp extends StatelessWidget {
+  const PawFuelApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'PawFuel',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF0D9488)),
+        useMaterial3: true,
+      ),
+      home: const WebShell(),
+    );
+  }
+}
+
+class WebShell extends StatefulWidget {
+  const WebShell({super.key});
+  @override
+  State<WebShell> createState() => _WebShellState();
+}
+
+class _WebShellState extends State<WebShell> {
+  late final WebViewController _controller;
+  double _progress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (p) => setState(() => _progress = p / 100),
+        ),
+      )
+      ..loadFlutterAsset('assets/www/index.html');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('PawFuel'),
+        bottom: _progress < 1.0
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(3),
+                child: LinearProgressIndicator(),
+              )
+            : null,
+      ),
+      body: WebViewWidget(controller: _controller),
+    );
+  }
+}

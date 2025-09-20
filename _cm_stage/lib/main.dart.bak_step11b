@@ -1,0 +1,74 @@
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: WebHost(),
+    );
+  }
+}
+
+class WebHost extends StatefulWidget {
+  const WebHost({super.key});
+  @override
+  State<WebHost> createState() => _WebHostState();
+}
+
+class _WebHostState extends State<WebHost> {
+  late final InAppLocalhostServer _server;
+  final int _port = 1271; // arbitrary local port
+
+  @override
+  void initState() {
+    super.initState();
+    _server = InAppLocalhostServer(documentRoot: 'assets/www', port: _port);
+    _start();
+  }
+
+  Future<void> _start() async {
+    try {
+      await _server.start();
+      if (mounted) setState(() {});
+    } catch (_) { /* already started */ }
+  }
+
+  @override
+  void dispose() {
+    _server.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final url = WebUri('http://localhost:/index.html');
+    return Scaffold(
+      body: SafeArea(
+        child: InAppWebView(
+          initialUrlRequest: URLRequest(url: url),
+          initialSettings: InAppWebViewSettings(
+            javaScriptEnabled: true,
+            clearCache: false,
+            allowFileAccessFromFileURLs: true,
+            allowUniversalAccessFromFileURLs: true,
+            mediaPlaybackRequiresUserGesture: false,
+          ),
+          onLoadError: (controller, requestUrl, code, message) {
+            debugPrint("LOAD ERROR:   @ ");
+          },
+          onConsoleMessage: (controller, consoleMessage) {
+            debugPrint("CONSOLE:  ");
+          },
+        ),
+      ),
+    );
+  }
+}
