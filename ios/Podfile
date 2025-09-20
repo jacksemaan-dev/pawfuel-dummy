@@ -1,6 +1,4 @@
 platform :ios, '14.0'
-
-# Disable analytics
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -26,23 +24,10 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # Keep frameworks + modular headers (safe for modern plugins)
-  use_frameworks!
-  use_modular_headers!
-
+  # DO NOT add use_frameworks! or use_modular_headers! unless you really need it.
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
   flutter_additional_ios_build_settings(installer)
-
-  # Extra hardening (safe with Xcode 15+/iOS 17+)
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      # Don’t exclude device archs
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphoneos*]'] = ''
-      # Help with Swift availability shims
-      config.build_settings['OTHER_SWIFT_FLAGS'] = '$(inherited) -Xfrontend -disable-availability-checking'
-    end
-  end
 end
