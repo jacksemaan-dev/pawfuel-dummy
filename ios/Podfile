@@ -28,33 +28,9 @@ target 'Runner' do
 end
 
 post_install do |installer|
-  # Try Flutter defaults but don't crash if the helper API changes
   begin
     flutter_additional_ios_build_settings(installer)
   rescue => e
     puts "Warning: Skipped flutter_additional_ios_build_settings: #{e}"
-  end
-
-  # Ensure every pod can import Swift modules and can see Flutter headers/frameworks
-  installer.pods_project.targets.each do |t|
-    t.build_configurations.each do |config|
-      config.build_settings['SWIFT_VERSION'] = '5.0'
-      config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
-      config.build_settings['DEFINES_MODULE'] = 'YES'
-      # Make sure header and framework search paths include Flutter
-      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public ${PODS_ROOT}/Headers/Public/Flutter'
-      config.build_settings['FRAMEWORK_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Flutter ${PODS_CONFIGURATION_BUILD_DIR}/Flutter'
-      # Standard runpath so frameworks are discoverable
-      config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = '$(inherited) @executable_path/Frameworks'
-    end
-  end
-
-  # Double-confirm the Flutter pod is a proper module for Swift
-  flutter_target = installer.pods_project.targets.find { |t| t.name == 'Flutter' }
-  if flutter_target
-    flutter_target.build_configurations.each do |config|
-      config.build_settings['DEFINES_MODULE'] = 'YES'
-      config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
-    end
   end
 end
