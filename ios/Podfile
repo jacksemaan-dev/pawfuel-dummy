@@ -1,0 +1,21 @@
+platform :ios, '14.0'
+
+use_frameworks!
+use_modular_headers!
+
+target 'Runner' do
+  flutter_application_path = '../'
+  eval(File.read(File.join(flutter_application_path, '.flutter-plugins-dependencies')), binding)
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      # Keep defaults for device builds (arm64). We don't exclude anything on iphoneos.
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphoneos*]'] = ''
+
+      # Swift concurrency shims & availability checks for Xcode 15+/iOS 17+ builds
+      config.build_settings['OTHER_SWIFT_FLAGS'] = '$(inherited) -Xfrontend -disable-availability-checking'
+    end
+  end
+end
