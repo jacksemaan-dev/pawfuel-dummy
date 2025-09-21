@@ -1,30 +1,41 @@
 platform :ios, '13.0'
 
-# Load Flutter's CocoaPods helpers from the Flutter SDK (modern template)
-flutter_root = File.expand_path(File.join('..', '..'))
+# --- Robust Flutter SDK detection (works locally & on CI) ---
+def read_flutter_root_from_generated
+  generated = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated)
+    raise "Missing #{generated}. Run 'flutter pub get' first to generate it."
+  end
+  File.foreach(generated) do |line|
+    match = line.match(/FLUTTER_ROOT\=(.*)/)
+    return match[1].strip if match
+  end
+  raise 'FLUTTER_ROOT not found in Generated.xcconfig'
+end
+
+flutter_root = ENV['FLUTTER_ROOT'] || read_flutter_root_from_generated
 require File.expand_path(File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper'))
 
-# Sets up Flutter?s CocoaPods integration
+# Sets up Flutter’s CocoaPods integration
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # Recommended combo for Flutter with Swift plugins
+  # Stable combo with Flutter + Swift plugins
   use_frameworks! :linkage => :static
   use_modular_headers!
 
-  # Installs Flutter engine + plugin pods for Runner target
+  # Installs Flutter engine + plugin pods for Runner
   flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |t|
     t.build_configurations.each do |config|
-      # Ensure iOS 13 minimum and disable deprecated bitcode
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
   end
 
-  # Add Flutter?s recommended extra build settings
+  # Flutter’s recommended additional settings
   flutter_additional_ios_build_settings(installer)
 end
