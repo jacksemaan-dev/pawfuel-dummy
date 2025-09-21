@@ -1,165 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-  <!-- Keep charset first so emojis & text render correctly -->
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Make all relative links resolve against this file in WKWebView -->
+  <meta charset="UTF-8">
   <base href="./">
-
-  <!-- Optional but helpful CSP while loading local assets -->
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' data: blob:;
-                 img-src 'self' data: blob:;
-                 style-src 'self' 'unsafe-inline';
-                 script-src 'self' 'unsafe-inline';
-                 connect-src 'self' data: blob:;
-                 font-src 'self' data: blob:;
-                 media-src 'self' data: blob:">
-
-  <meta name="theme-color" content="#1a1a1a">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PawFuel</title>
-
-  <!-- Local assets (must exist under assets/www/) -->
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./style.css">
-
-  <!-- Disable SW when running from flutter-asset:// or file:// -->
-  <script>
-    (function () {
-      try {
-        var isHttp = /^https?:$/i.test(location.protocol);
-        if (!isHttp && 'serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations()
-            .then(rs => rs.forEach(r => r.unregister()))
-            .catch(() => {});
-          try { navigator.serviceWorker.register = function(){ return Promise.resolve({}); }; } catch(e){}
-        }
-        // Surface JS errors
-        window.addEventListener('error', function(e){
-          try { console.error('[ASSET-ERROR]', e.message, e.filename, e.lineno); } catch(_) {}
-        });
-      } catch (e) {}
-    })();
-  </script>
-
-  <!-- Optional autoload for split bundles (kept, but paths normalized) -->
-  <script>
-    (function () {
-      try {
-        function addCss(href) {
-          var l = document.createElement('link');
-          l.rel = 'stylesheet';
-          l.href = href;
-          document.head.appendChild(l);
-        }
-        function addJs(src) {
-          return new Promise(function (res, rej) {
-            var s = document.createElement('script');
-            s.src = src;
-            s.onload = res;
-            s.onerror = function(){ console.error('[AUTOLOAD] fail', src); rej(new Error('load '+src)); };
-            document.body.appendChild(s);
-          });
-        }
-        function seq(list){ return list.reduce((p,src)=>p.then(()=>addJs(src)), Promise.resolve()); }
-
-        fetch('./autoload_manifest.json')
-          .then(r => r.ok ? r.json() : Promise.reject(r.status))
-          .then(function (m) {
-            try {
-              (m.css || []).forEach(function (p) {
-                if (p && !/^https?:/i.test(p)) addCss('./' + p.replace(/^\.?\//, ''));
-              });
-              var js = (m.js || [])
-                .filter(p => p && !/^https?:/i.test(p))
-                .map(p => './' + p.replace(/^\.?\//, ''));
-              return seq(js);
-            } catch (e) { console.error('[AUTOLOAD] error', e); }
-          })
-          .catch(function (e) { console.error('[AUTOLOAD] manifest error', e); });
-      } catch (e) { console.error('[AUTOLOAD] fatal', e); }
-    })();
-  </script>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  <!-- 🔰 Canary marker: proves this exact asset is in the build -->
-  <div style="position:fixed;top:5px;left:5px;z-index:9999;
-              background:#ff0;padding:4px 6px;font-size:12px;
-              border:1px solid #000;border-radius:4px;">
-    Build 1.0.3+7 Canary
+  <div id="canary" class="canary">Build Canary v12</div>
+  <nav id="nav">
+    <!-- navigation buttons; labels will be injected via JS translation -->
+    <button data-section="home"></button>
+    <button data-section="inventory"></button>
+    <button data-section="stool"></button>
+    <button data-section="plates"></button>
+    <button data-section="insights"></button>
+    <button data-section="orders"></button>
+    <button data-section="settings"></button>
+    <button data-section="account"></button>
+    <button data-section="onboarding"></button>
+    <button data-section="faqs"></button>
+    <button data-section="studies"></button>
+    <button data-section="shop"></button>
+    <button id="lang-toggle"></button>
+  </nav>
+  <div id="content">
+    <section id="home" class="page">Welcome to PawFuel.</section>
+    <section id="inventory" class="page">Inventory page.</section>
+    <section id="stool" class="page">Stool page.</section>
+    <section id="plates" class="page">Plates page.</section>
+    <section id="insights" class="page">Insights page.</section>
+    <section id="orders" class="page">
+      <h2>Orders</h2>
+      <div id="orders-list"></div>
+      <div class="order-form">
+        <label><span id="label-order-subtotal">Order Subtotal:</span> <input type="number" id="order-subtotal" min="0" step="0.01"></label>
+        <button id="create-order"></button>
+      </div>
+      <div id="order-result"></div>
+      <button id="download-pdf"></button>
+    </section>
+    <section id="settings" class="page">Settings page.</section>
+    <section id="account" class="page">Account page.</section>
+    <section id="onboarding" class="page">Onboarding page.</section>
+    <section id="faqs" class="page">FAQs page.</section>
+    <section id="studies" class="page">Studies page.</section>
+    <section id="shop" class="page">
+      <h2 id="shop-portal-title">Shop Owner Portal</h2>
+      <div id="shop-signup">
+        <input type="file" id="catalog-upload" accept="application/json,application/xml,image/*">
+        <button id="upload-catalog"></button>
+        <div id="upload-status"></div>
+      </div>
+    </section>
+    <section id="pricing" class="page">
+      <h2 id="pricing-title">Pricing</h2>
+      <div id="pricing-content"></div>
+    </section>
   </div>
-
-  <div id="app">
-    <!-- Navigation -->
-    <nav id="navBar">
-      <button data-page="home"><span class="paw-icon">🐾</span><span class="nav-label">Home</span></button>
-      <button data-page="inventory"><span class="paw-icon">📦</span><span class="nav-label">Inventory</span></button>
-      <button data-page="stool"><span class="paw-icon">💩</span><span class="nav-label">Stool</span></button>
-      <button data-page="plates"><span class="paw-icon">🍽️</span><span class="nav-label">Plates</span></button>
-      <button data-page="insights"><span class="paw-icon">📊</span><span class="nav-label">Insights</span></button>
-      <button data-page="orders"><span class="paw-icon">🧾</span><span class="nav-label">Orders</span></button>
-      <button data-page="settings"><span class="paw-icon">⚙️</span><span class="nav-label">Settings</span></button>
-      <button data-page="account"><span class="paw-icon">👤</span><span class="nav-label">Account</span></button>
-    </nav>
-
-    <!-- Pages -->
-    <main id="pages">
-      <section id="homePage" class="page hidden">
-        <div class="hero">
-          <h1>PawFuel</h1>
-          <p id="motto">Fuel them like nature intended</p>
-        </div>
-        <div id="mealCard" class="card"></div>
-        <div id="coachCard" class="card"></div>
-      </section>
-
-      <section id="inventoryPage" class="page hidden">
-        <h2>Inventory</h2>
-        <div id="inventoryList"></div>
-        <button id="addStockBtn" class="primary">Add Stock</button>
-        <button id="addProductBtn" class="secondary">Add Product</button>
-      </section>
-
-      <section id="stoolPage" class="page hidden">
-        <h2>Stool Analysis</h2>
-        <div id="stoolResult" class="card"></div>
-        <label for="stoolInput" class="primary">Analyse Stool Photo
-          <input id="stoolInput" type="file" accept="image/*" style="display:none">
-        </label>
-      </section>
-
-      <section id="platesPage" class="page hidden">
-        <h2>Plates Tutorials</h2>
-        <div id="platesList"></div>
-      </section>
-
-      <section id="insightsPage" class="page hidden">
-        <h2>Insights</h2>
-        <div id="insightsContent"></div>
-      </section>
-
-      <section id="ordersPage" class="page hidden">
-        <h2>Orders</h2>
-        <div id="ordersContent"></div>
-        <button id="orderBtn" class="primary">Copy Order List</button>
-      </section>
-
-      <section id="settingsPage" class="page hidden">
-        <h2>Settings</h2>
-        <div id="settingsContent"></div>
-      </section>
-
-      <section id="accountPage" class="page hidden"></section>
-      <section id="onboardingPage" class="page hidden"></section>
-      <section id="faqsPage" class="page hidden"><h2>FAQs</h2><div id="faqsContent"></div></section>
-      <section id="studiesPage" class="page hidden"><h2>Studies</h2><div id="studiesContent"></div></section>
-    </main>
-  </div>
-
-  <!-- Local scripts (must exist under assets/www/) -->
-  <script src="./assets/embedded_catalog.js"></script>
-  <script src="./app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
