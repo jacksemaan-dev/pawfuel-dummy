@@ -2,7 +2,7 @@ name: pawfuel_app
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.3+5
+version: 1.0.3+6
 
 
 environment:
@@ -28,6 +28,9 @@ dev_dependencies:
 flutter:
   assets:
     - assets/www/
+    - assets/www/Configs/
+    - assets/www/Info/
+    - assets/www/Sources/
 
 
 # Launcher icons config
