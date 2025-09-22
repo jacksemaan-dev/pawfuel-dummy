@@ -5,10 +5,11 @@
   <base href="./">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PawFuel</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <div id="canary" class="canary">Build Canary v12</div>
+
   <nav id="nav">
     <!-- navigation buttons; labels will be injected via JS translation -->
     <button data-section="home"></button>
@@ -25,6 +26,7 @@
     <button data-section="shop"></button>
     <button id="lang-toggle"></button>
   </nav>
+
   <div id="content">
     <section id="home" class="page">Welcome to PawFuel.</section>
     <section id="inventory" class="page">Inventory page.</section>
@@ -35,7 +37,9 @@
       <h2>Orders</h2>
       <div id="orders-list"></div>
       <div class="order-form">
-        <label><span id="label-order-subtotal">Order Subtotal:</span> <input type="number" id="order-subtotal" min="0" step="0.01"></label>
+        <label><span id="label-order-subtotal">Order Subtotal:</span>
+          <input type="number" id="order-subtotal" min="0" step="0.01">
+        </label>
         <button id="create-order"></button>
       </div>
       <div id="order-result"></div>
@@ -59,6 +63,37 @@
       <div id="pricing-content"></div>
     </section>
   </div>
-  <script src="app.js"></script>
+
+  <!-- DEBUG OVERLAY (temporary) -->
+  <div id="__dbg" style="position:fixed;bottom:0;left:0;right:0;max-height:40%;
+    overflow:auto;background:rgba(0,0,0,.85);color:#0f0;font:12px/1.4 monospace;
+    padding:6px;z-index:99999;white-space:pre-wrap;display:block;">
+    [DBG] overlay active…
+  </div>
+  <script>
+  (function(){
+    try {
+      var box = document.getElementById('__dbg');
+      function pfx(k){ return '['+new Date().toISOString().slice(11,19)+'] '+k+': '; }
+      var _log = console.log, _err = console.error, _warn = console.warn;
+      console.log = function(){ try{ box.textContent += "\n"+pfx('LOG')+Array.from(arguments).join(' ');}catch(_){}; _log.apply(console, arguments); };
+      console.warn = function(){ try{ box.textContent += "\n"+pfx('WARN')+Array.from(arguments).join(' ');}catch(_){}; _warn.apply(console, arguments); };
+      console.error = function(){ try{ box.textContent += "\n"+pfx('ERR')+Array.from(arguments).join(' ');}catch(_){}; _err.apply(console, arguments); };
+      window.addEventListener('error', function(e){
+        try{ box.textContent += "\n"+pfx('ONERROR')+e.message+" @ "+e.filename+":"+e.lineno; }catch(_){}
+      });
+      // Quick sanity checks for common pitfalls
+      console.log('DBG: baseHref=', (document.querySelector('base')||{}).href);
+      console.log('DBG: trying to fetch ./Configs/env.json …');
+      fetch('./Configs/env.json')
+        .then(function(r){ console.log('DBG: env status', r.status); return r.text(); })
+        .then(function(t){ console.log('DBG: env length', t.length); })
+        .catch(function(e){ console.error('DBG: env fetch failed', e && (e.message||e)); });
+    } catch(e){ /* swallow */ }
+  })();
+  </script>
+
+  <!-- App script (local) -->
+  <script src="./app.js"></script>
 </body>
 </html>
