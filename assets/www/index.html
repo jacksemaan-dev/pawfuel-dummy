@@ -6,6 +6,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PawFuel</title>
   <link rel="stylesheet" href="./style.css">
+
+  <!-- Fetch shim for WKWebView local file:// mode (MUST be in <head> before any other scripts use fetch) -->
+  <script>
+  (function () {
+    try {
+      if (location.protocol !== 'file:') return; // only patch when running as local asset
+
+      var origFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+
+      function fetchLocal(input, init) {
+        return new Promise(function (resolve, reject) {
+          try {
+            var raw = (typeof input === 'string') ? input : (input && input.url) || '';
+            var resolved = new URL(raw, document.baseURI).href; // resolve relative path against <base>
+            var xhr = new XMLHttpRequest();
+            xhr.open((init && init.method) || 'GET', resolved, true);
+            xhr.responseType = 'text';
+            // Helpful for JSON reads; harmless otherwise
+            try { xhr.overrideMimeType('application/json'); } catch (_) {}
+
+            if (init && init.headers) {
+              try {
+                Object.keys(init.headers).forEach(function (k) {
+                  try { xhr.setRequestHeader(k, init.headers[k]); } catch (_) {}
+                });
+              } catch (_) {}
+            }
+
+            xhr.onload = function () {
+              // Local file loads report status 0; normalize to 200 so app logic sees success.
+              var status = (xhr.status === 0) ? 200 : xhr.status;
+              var headers = new Headers({
+                'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json'
+              });
+              resolve(new Response(xhr.responseText || '', { status: status, headers: headers }));
+            };
+            xhr.onerror = function () { reject(new TypeError('Load failed')); };
+            xhr.send((init && init.body) || null);
+          } catch (e) { reject(e); }
+        });
+      }
+
+      window.fetch = function (input, init) {
+        try {
+          var url = (typeof input === 'string') ? input : (input && input.url) || '';
+          // Treat relative or file:// URLs as local; leave http(s) to the original fetch.
+          var isAbsolute = /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(url);
+          if (!isAbsolute || url.startsWith('file:')) {
+            return fetchLocal(input, init);
+          }
+        } catch (_) {}
+        if (origFetch) return origFetch(input, init);
+        return Promise.reject(new Error('fetch unavailable'));
+      };
+    } catch (e) { /* no-op */ }
+  })();
+  </script>
 </head>
 <body>
   <div id="canary" class="canary">Build Canary v12</div>
@@ -82,61 +139,22 @@
       window.addEventListener('error', function(e){
         try{ box.textContent += "\n"+pfx('ONERROR')+e.message+" @ "+e.filename+":"+e.lineno; }catch(_){}
       });
-      // Quick sanity checks
+
+      // Probe with a fully resolved URL so we see exactly what the shim sees.
+      var testUrl = new URL('./Configs/env.json', document.baseURI).href;
       console.log('DBG: baseHref=', (document.querySelector('base')||{}).href);
-      console.log('DBG: trying to fetch ./Configs/env.json …');
+      console.log('DBG: resolved env url', testUrl);
+
+      fetch(testUrl)
+        .then(function(r){ console.log('DBG: env status', r.status); return r.text(); })
+        .then(function(t){ console.log('DBG: env length', t.length); })
+        .catch(function(e){ console.error('DBG: env fetch failed', e && (e.message||e)); });
+
     } catch(e){ /* swallow */ }
   })();
   </script>
 
-  <!-- Fetch shim for WKWebView local file:// mode -->
-  <script>
-  (function () {
-    try {
-      var isHttp = /^https?:$/i.test(location.protocol);
-      if (!isHttp && typeof window.fetch === 'function') {
-        var origFetch = window.fetch;
-        window.fetch = function (input, init) {
-          try {
-            var url = (typeof input === 'string') ? input : (input && input.url) || '';
-            // Intercept only relative/local requests (leave http/https alone)
-            if (url && !/^https?:/i.test(url)) {
-              return new Promise(function (resolve, reject) {
-                try {
-                  var xhr = new XMLHttpRequest();
-                  xhr.open((init && init.method) || 'GET', url, true);
-                  xhr.responseType = 'text';
-                  if (init && init.headers) {
-                    Object.keys(init.headers).forEach(function (k) {
-                      try { xhr.setRequestHeader(k, init.headers[k]); } catch (_) {}
-                    });
-                  }
-                  xhr.onload = function () {
-                    var status = xhr.status || 200;
-                    var body = xhr.responseText || '';
-                    resolve(new Response(body, { status: status }));
-                  };
-                  xhr.onerror = function () { reject(new TypeError('Load failed')); };
-                  xhr.send((init && init.body) || null);
-                } catch (e) { reject(e); }
-              });
-            }
-          } catch (_) { /* fall through to original */ }
-          return origFetch.apply(this, arguments);
-        };
-      }
-    } catch (e) { /* no-op */ }
-  })();
-  </script>
-
   <!-- App script (local) -->
-  <script>
-    // Now actually fetch the env to keep the debug overlay informative
-    fetch('./Configs/env.json')
-      .then(function(r){ console.log('DBG: env status', r.status); return r.text(); })
-      .then(function(t){ console.log('DBG: env length', t.length); })
-      .catch(function(e){ console.error('DBG: env fetch failed', e && (e.message||e)); });
-  </script>
   <script src="./app.js"></script>
 </body>
 </html>
