@@ -82,18 +82,61 @@
       window.addEventListener('error', function(e){
         try{ box.textContent += "\n"+pfx('ONERROR')+e.message+" @ "+e.filename+":"+e.lineno; }catch(_){}
       });
-      // Quick sanity checks for common pitfalls
+      // Quick sanity checks
       console.log('DBG: baseHref=', (document.querySelector('base')||{}).href);
       console.log('DBG: trying to fetch ./Configs/env.json …');
-      fetch('./Configs/env.json')
-        .then(function(r){ console.log('DBG: env status', r.status); return r.text(); })
-        .then(function(t){ console.log('DBG: env length', t.length); })
-        .catch(function(e){ console.error('DBG: env fetch failed', e && (e.message||e)); });
     } catch(e){ /* swallow */ }
   })();
   </script>
 
+  <!-- Fetch shim for WKWebView local file:// mode -->
+  <script>
+  (function () {
+    try {
+      var isHttp = /^https?:$/i.test(location.protocol);
+      if (!isHttp && typeof window.fetch === 'function') {
+        var origFetch = window.fetch;
+        window.fetch = function (input, init) {
+          try {
+            var url = (typeof input === 'string') ? input : (input && input.url) || '';
+            // Intercept only relative/local requests (leave http/https alone)
+            if (url && !/^https?:/i.test(url)) {
+              return new Promise(function (resolve, reject) {
+                try {
+                  var xhr = new XMLHttpRequest();
+                  xhr.open((init && init.method) || 'GET', url, true);
+                  xhr.responseType = 'text';
+                  if (init && init.headers) {
+                    Object.keys(init.headers).forEach(function (k) {
+                      try { xhr.setRequestHeader(k, init.headers[k]); } catch (_) {}
+                    });
+                  }
+                  xhr.onload = function () {
+                    var status = xhr.status || 200;
+                    var body = xhr.responseText || '';
+                    resolve(new Response(body, { status: status }));
+                  };
+                  xhr.onerror = function () { reject(new TypeError('Load failed')); };
+                  xhr.send((init && init.body) || null);
+                } catch (e) { reject(e); }
+              });
+            }
+          } catch (_) { /* fall through to original */ }
+          return origFetch.apply(this, arguments);
+        };
+      }
+    } catch (e) { /* no-op */ }
+  })();
+  </script>
+
   <!-- App script (local) -->
+  <script>
+    // Now actually fetch the env to keep the debug overlay informative
+    fetch('./Configs/env.json')
+      .then(function(r){ console.log('DBG: env status', r.status); return r.text(); })
+      .then(function(t){ console.log('DBG: env length', t.length); })
+      .catch(function(e){ console.error('DBG: env fetch failed', e && (e.message||e)); });
+  </script>
   <script src="./app.js"></script>
 </body>
 </html>
