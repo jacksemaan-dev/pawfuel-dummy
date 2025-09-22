@@ -7,6 +7,14 @@
   <title>PawFuel</title>
   <link rel="stylesheet" href="./style.css">
 
+  <!-- Inline fallback for env.json (ONLY used if XHR fails) -->
+  <script id="__inline_env_json" type="application/json">
+  {
+    "billingStartAt": "2025-10-01",
+    "env": "staging"
+  }
+  </script>
+
   <!-- Robust fetch shim for WKWebView local file:// assets -->
   <script>
   (function () {
@@ -47,59 +55,27 @@
         });
       }
 
-      // Fallback: load via hidden <iframe>, then read its document text
-      function iframeFetch(resolved) {
-        return new Promise(function (resolve, reject) {
-          try {
-            var iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = resolved;
-            var timer = setTimeout(function () {
-              cleanup();
-              reject(new TypeError('Iframe load timeout'));
-            }, 4000);
-
-            function cleanup() {
-              try { clearTimeout(timer); } catch(_) {}
-              try { document.body.removeChild(iframe); } catch(_) {}
-            }
-
-            iframe.onload = function () {
-              try {
-                var doc = iframe.contentDocument || iframe.contentWindow && iframe.contentWindow.document;
-                var text = '';
-                if (doc) {
-                  // JSON files load as text document; body may hold the text content
-                  text = (doc.body && (doc.body.innerText || doc.body.textContent)) || '';
-                }
-                cleanup();
-                resolve(new Response(text, { status: 200, headers: new Headers({ 'Content-Type': 'application/json' }) }));
-              } catch (e) {
-                cleanup();
-                reject(e);
-              }
-            };
-            iframe.onerror = function () {
-              cleanup();
-              reject(new TypeError('Iframe load failed'));
-            };
-            document.body.appendChild(iframe);
-          } catch (e) { reject(e); }
-        });
+      function inlineEnvResponse() {
+        var node = document.getElementById('__inline_env_json');
+        var text = node ? (node.textContent || '') : '';
+        return new Response(text, { status: 200, headers: new Headers({ 'Content-Type': 'application/json' }) });
       }
 
       window.fetch = function (input, init) {
         try {
           var url = (typeof input === 'string') ? input : (input && input.url) || '';
-          // Pass through real network requests
+          // Pass through real network
           if (/^https?:/i.test(url)) {
             return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));
           }
 
           var resolved = resolveUrl(input);
-          // Try XHR first; if that errors, fall back to iframe loader
+
+          // If the request targets env.json, provide a resilient path: XHR → inline fallback
+          var isEnvJson = /(^|\/)Configs\/env\.json(\?|#|$)/i.test(resolved) || /(^|\/)env\.json(\?|#|$)/i.test(resolved);
+
           return xhrFetch(resolved, init).catch(function () {
-            return iframeFetch(resolved);
+            return isEnvJson ? inlineEnvResponse() : Promise.reject(new TypeError('Local file load failed'));
           });
         } catch (_) {
           return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));
@@ -185,7 +161,6 @@
         try{ box.textContent += "\n"+pfx('ONERROR')+e.message+" @ "+e.filename+":"+e.lineno; }catch(_){}
       });
 
-      // Probe with a fully resolved URL so we see exactly what the shim sees.
       var testUrl = new URL('./Configs/env.json', document.baseURI).href;
       console.log('DBG: baseHref=', (document.querySelector('base')||{}).href);
       console.log('DBG: resolved env url', testUrl);
