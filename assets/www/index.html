@@ -7,23 +7,25 @@
   <title>PawFuel</title>
   <link rel="stylesheet" href="./style.css">
 
-  <!-- Fetch shim for WKWebView local file:// mode (MUST be in <head> before any other scripts use fetch) -->
+  <!-- Robust fetch shim for WKWebView local file:// assets -->
   <script>
   (function () {
     try {
-      if (location.protocol !== 'file:') return; // only patch when running as local asset
+      if (location.protocol !== 'file:') return; // only patch local-asset mode
 
       var origFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
 
-      function fetchLocal(input, init) {
+      function resolveUrl(u) {
+        var raw = (typeof u === 'string') ? u : (u && u.url) || '';
+        return new URL(raw || '.', document.baseURI).href;
+      }
+
+      function xhrFetch(resolved, init) {
         return new Promise(function (resolve, reject) {
           try {
-            var raw = (typeof input === 'string') ? input : (input && input.url) || '';
-            var resolved = new URL(raw, document.baseURI).href; // resolve relative path against <base>
             var xhr = new XMLHttpRequest();
             xhr.open((init && init.method) || 'GET', resolved, true);
             xhr.responseType = 'text';
-            // Helpful for JSON reads; harmless otherwise
             try { xhr.overrideMimeType('application/json'); } catch (_) {}
 
             if (init && init.headers) {
@@ -35,11 +37,8 @@
             }
 
             xhr.onload = function () {
-              // Local file loads report status 0; normalize to 200 so app logic sees success.
               var status = (xhr.status === 0) ? 200 : xhr.status;
-              var headers = new Headers({
-                'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json'
-              });
+              var headers = new Headers({ 'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json' });
               resolve(new Response(xhr.responseText || '', { status: status, headers: headers }));
             };
             xhr.onerror = function () { reject(new TypeError('Load failed')); };
@@ -48,17 +47,63 @@
         });
       }
 
+      // Fallback: load via hidden <iframe>, then read its document text
+      function iframeFetch(resolved) {
+        return new Promise(function (resolve, reject) {
+          try {
+            var iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = resolved;
+            var timer = setTimeout(function () {
+              cleanup();
+              reject(new TypeError('Iframe load timeout'));
+            }, 4000);
+
+            function cleanup() {
+              try { clearTimeout(timer); } catch(_) {}
+              try { document.body.removeChild(iframe); } catch(_) {}
+            }
+
+            iframe.onload = function () {
+              try {
+                var doc = iframe.contentDocument || iframe.contentWindow && iframe.contentWindow.document;
+                var text = '';
+                if (doc) {
+                  // JSON files load as text document; body may hold the text content
+                  text = (doc.body && (doc.body.innerText || doc.body.textContent)) || '';
+                }
+                cleanup();
+                resolve(new Response(text, { status: 200, headers: new Headers({ 'Content-Type': 'application/json' }) }));
+              } catch (e) {
+                cleanup();
+                reject(e);
+              }
+            };
+            iframe.onerror = function () {
+              cleanup();
+              reject(new TypeError('Iframe load failed'));
+            };
+            document.body.appendChild(iframe);
+          } catch (e) { reject(e); }
+        });
+      }
+
       window.fetch = function (input, init) {
         try {
           var url = (typeof input === 'string') ? input : (input && input.url) || '';
-          // Treat relative or file:// URLs as local; leave http(s) to the original fetch.
-          var isAbsolute = /^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(url);
-          if (!isAbsolute || url.startsWith('file:')) {
-            return fetchLocal(input, init);
+          // Pass through real network requests
+          if (/^https?:/i.test(url)) {
+            return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));
           }
-        } catch (_) {}
-        if (origFetch) return origFetch(input, init);
-        return Promise.reject(new Error('fetch unavailable'));
+
+          var resolved = resolveUrl(input);
+          // Try XHR first; if that errors, fall back to iframe loader
+          return xhrFetch(resolved, init).catch(function () {
+            return iframeFetch(resolved);
+          });
+        } catch (_) {
+          return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));
+        }
       };
     } catch (e) { /* no-op */ }
   })();
