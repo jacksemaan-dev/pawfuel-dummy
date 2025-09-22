@@ -7,11 +7,21 @@
   <title>PawFuel</title>
   <link rel="stylesheet" href="./style.css">
 
-  <!-- Inline fallback for env.json (ONLY used if XHR fails) -->
+  <!-- Inline fallback for env.json (ONLY used if XHR fails or returns empty) -->
   <script id="__inline_env_json" type="application/json">
   {
+    "env": "staging",
     "billingStartAt": "2025-10-01",
-    "env": "staging"
+    "pricing": {
+      "user":   { "monthly": 1.99, "yearly": 18.00 },
+      "shop":   { "monthly": 10.00, "yearly": 90.00 },
+      "commissionPercent": 3
+    },
+    "loyalty": {
+      "eligibleIfJoinedBefore": "2025-10-01",
+      "discountPercent": 50,
+      "months": 3
+    }
   }
   </script>
 
@@ -28,7 +38,14 @@
         return new URL(raw || '.', document.baseURI).href;
       }
 
-      function xhrFetch(resolved, init) {
+      function inlineEnvResponse() {
+        var node = document.getElementById('__inline_env_json');
+        var text = node ? (node.textContent || '') : '';
+        console.log('DBG: env source INLINE');
+        return new Response(text, { status: 200, headers: new Headers({ 'Content-Type': 'application/json' }) });
+      }
+
+      function xhrFetch(resolved, init, isEnvJson) {
         return new Promise(function (resolve, reject) {
           try {
             var xhr = new XMLHttpRequest();
@@ -46,19 +63,30 @@
 
             xhr.onload = function () {
               var status = (xhr.status === 0) ? 200 : xhr.status;
-              var headers = new Headers({ 'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json' });
-              resolve(new Response(xhr.responseText || '', { status: status, headers: headers }));
+              var body = xhr.responseText || '';
+              if (isEnvJson) {
+                if (body && body.length > 0) {
+                  console.log('DBG: env source XHR', resolved);
+                  return resolve(new Response(body, {
+                    status: status,
+                    headers: new Headers({ 'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json' })
+                  }));
+                }
+                // XHR succeeded but empty body → use inline fallback
+                return resolve(inlineEnvResponse());
+              }
+              resolve(new Response(body, {
+                status: status,
+                headers: new Headers({ 'Content-Type': xhr.getResponseHeader('Content-Type') || 'text/plain' })
+              }));
             };
-            xhr.onerror = function () { reject(new TypeError('Load failed')); };
+            xhr.onerror = function () {
+              if (isEnvJson) return resolve(inlineEnvResponse());
+              reject(new TypeError('Local file load failed'));
+            };
             xhr.send((init && init.body) || null);
           } catch (e) { reject(e); }
         });
-      }
-
-      function inlineEnvResponse() {
-        var node = document.getElementById('__inline_env_json');
-        var text = node ? (node.textContent || '') : '';
-        return new Response(text, { status: 200, headers: new Headers({ 'Content-Type': 'application/json' }) });
       }
 
       window.fetch = function (input, init) {
@@ -70,13 +98,10 @@
           }
 
           var resolved = resolveUrl(input);
-
-          // If the request targets env.json, provide a resilient path: XHR → inline fallback
           var isEnvJson = /(^|\/)Configs\/env\.json(\?|#|$)/i.test(resolved) || /(^|\/)env\.json(\?|#|$)/i.test(resolved);
 
-          return xhrFetch(resolved, init).catch(function () {
-            return isEnvJson ? inlineEnvResponse() : Promise.reject(new TypeError('Local file load failed'));
-          });
+          // Try XHR first; if it errors (or returns empty for env.json), use inline fallback
+          return xhrFetch(resolved, init, isEnvJson);
         } catch (_) {
           return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));
         }
