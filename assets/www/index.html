@@ -30,21 +30,18 @@
   (function () {
     try {
       if (location.protocol !== 'file:') return; // only patch local-asset mode
-
       var origFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
 
       function resolveUrl(u) {
         var raw = (typeof u === 'string') ? u : (u && u.url) || '';
         return new URL(raw || '.', document.baseURI).href;
       }
-
       function inlineEnvResponse() {
         var node = document.getElementById('__inline_env_json');
         var text = node ? (node.textContent || '') : '';
         console.log('DBG: env source INLINE');
         return new Response(text, { status: 200, headers: new Headers({ 'Content-Type': 'application/json' }) });
       }
-
       function xhrFetch(resolved, init, isEnvJson) {
         return new Promise(function (resolve, reject) {
           try {
@@ -52,69 +49,52 @@
             xhr.open((init && init.method) || 'GET', resolved, true);
             xhr.responseType = 'text';
             try { xhr.overrideMimeType('application/json'); } catch (_) {}
-
             if (init && init.headers) {
-              try {
-                Object.keys(init.headers).forEach(function (k) {
-                  try { xhr.setRequestHeader(k, init.headers[k]); } catch (_) {}
-                });
-              } catch (_) {}
+              try { Object.keys(init.headers).forEach(function (k) { try { xhr.setRequestHeader(k, init.headers[k]); } catch (_) {} }); } catch (_) {}
             }
-
             xhr.onload = function () {
               var status = (xhr.status === 0) ? 200 : xhr.status;
               var body = xhr.responseText || '';
               if (isEnvJson) {
                 if (body && body.length > 0) {
                   console.log('DBG: env source XHR', resolved);
-                  return resolve(new Response(body, {
-                    status: status,
-                    headers: new Headers({ 'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json' })
-                  }));
+                  return resolve(new Response(body, { status: status, headers: new Headers({ 'Content-Type': 'application/json' }) }));
                 }
-                // XHR succeeded but empty body → use inline fallback
                 return resolve(inlineEnvResponse());
               }
-              resolve(new Response(body, {
-                status: status,
-                headers: new Headers({ 'Content-Type': xhr.getResponseHeader('Content-Type') || 'text/plain' })
-              }));
+              resolve(new Response(body, { status: status, headers: new Headers({ 'Content-Type': 'text/plain' }) }));
             };
-            xhr.onerror = function () {
-              if (isEnvJson) return resolve(inlineEnvResponse());
-              reject(new TypeError('Local file load failed'));
-            };
+            xhr.onerror = function () { if (isEnvJson) return resolve(inlineEnvResponse()); reject(new TypeError('Local file load failed')); };
             xhr.send((init && init.body) || null);
           } catch (e) { reject(e); }
         });
       }
-
       window.fetch = function (input, init) {
         try {
           var url = (typeof input === 'string') ? input : (input && input.url) || '';
-          // Pass through real network
-          if (/^https?:/i.test(url)) {
-            return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));
-          }
-
+          if (/^https?:/i.test(url)) { return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable')); }
           var resolved = resolveUrl(input);
           var isEnvJson = /(^|\/)Configs\/env\.json(\?|#|$)/i.test(resolved) || /(^|\/)env\.json(\?|#|$)/i.test(resolved);
-
-          // Try XHR first; if it errors (or returns empty for env.json), use inline fallback
           return xhrFetch(resolved, init, isEnvJson);
-        } catch (_) {
-          return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));
-        }
+        } catch (_) { return origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch unavailable')); }
       };
     } catch (e) { /* no-op */ }
   })();
   </script>
+
+  <style>
+    /* Safe-boot: make pages hidden by default; JS shows selected one */
+    .page{display:none}
+    nav{user-select:none}
+    nav button{margin:.15rem .25rem; padding:.4rem .6rem}
+    #pricing .plan, #pricing .loyalty, .free-until{margin:.35rem 0}
+  </style>
 </head>
 <body>
   <div id="canary" class="canary">Build Canary v12</div>
 
   <nav id="nav">
-    <!-- navigation buttons; labels will be injected via JS translation -->
+    <!-- navigation buttons; labels will be injected via JS -->
     <button data-section="home"></button>
     <button data-section="inventory"></button>
     <button data-section="stool"></button>
@@ -196,6 +176,61 @@
         .catch(function(e){ console.error('DBG: env fetch failed', e && (e.message||e)); });
 
     } catch(e){ /* swallow */ }
+  })();
+  </script>
+
+  <!-- SAFE-BOOT UI: if app.js misses, we still get a working UI -->
+  <script>
+  (function(){
+    function log(){ try{ console.log.apply(console, arguments); }catch(_){ } }
+    function $(sel){ return document.querySelector(sel); }
+    function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+    function setText(el, t){ if(el) el.textContent = t; }
+    function show(id){ $all('.page').forEach(s => s.style.display = (s.id===id?'block':'none')); }
+
+    function initNav(){
+      const labels = {home:'Home',inventory:'Inventory',stool:'Stool',plates:'Plates',insights:'Insights',orders:'Orders',settings:'Settings',account:'Account',onboarding:'Onboarding',faqs:'FAQs',studies:'Studies',shop:'Shop Owner'};
+      Object.keys(labels).forEach(id=>{
+        const btn = document.querySelector('button[data-section="'+id+'"]');
+        if(btn){ setText(btn, labels[id]); btn.onclick = () => show(id); }
+      });
+      const lang = $('#lang-toggle'); if(lang) setText(lang, 'عربية');
+    }
+
+    function renderPricing(cfg){
+      const box = $('#pricing-content'); if(!box) return;
+      const p = cfg.pricing || {}, u = p.user || {}, s = p.shop || {};
+      const commission = (p.commissionPercent!=null ? p.commissionPercent : 3);
+      const bsa = cfg.billingStartAt ? new Date(cfg.billingStartAt) : null;
+
+      const lines=[];
+      if (bsa) lines.push('<div class="free-until">Free until '+ bsa.toLocaleDateString() +'</div>');
+      lines.push('<div class="plan"><b>Users</b>: $'+ (u.monthly||1.99).toFixed(2) +'/mo · $'+ (u.yearly||18).toFixed(2) +'/yr</div>');
+      lines.push('<div class="plan"><b>Shop owners</b>: $'+ (s.monthly||10).toFixed(2) +'/mo · $'+ (s.yearly||90).toFixed(2) +'/yr</div>');
+      lines.push('<div class="plan"><b>Commission</b>: '+ commission +'%</div>');
+
+      const loy = cfg.loyalty || {};
+      if (loy.discountPercent && loy.months && loy.eligibleIfJoinedBefore){
+        const d = new Date(loy.eligibleIfJoinedBefore);
+        lines.push('<div class="loyalty">Early adopters: '+loy.discountPercent+'% off first '+loy.months+' paid months (joined before '+ d.toLocaleDateString() +').</div>');
+      }
+
+      box.innerHTML = lines.join('');
+    }
+
+    function safeInit(){
+      if (window.__pawfuel_ready) { log('DBG: safe boot not needed'); return; }
+      log('DBG: safe boot INIT');
+      initNav();
+      show('pricing');
+      fetch('./Configs/env.json')
+        .then(r=>r.json())
+        .then(cfg=>{ window.__pawfuel_safe_cfg = cfg; renderPricing(cfg); })
+        .catch(e=>{ console.error('DBG: safe boot env error', e); });
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=> setTimeout(safeInit, 120));
+    setTimeout(safeInit, 2200); // watchdog if DOMContentLoaded missed
   })();
   </script>
 
