@@ -7,7 +7,7 @@
   <title>PawFuel</title>
   <link rel="stylesheet" href="./style.css">
 
-  <!-- Inline fallback for env.json (ONLY used if XHR fails or returns empty) -->
+  <!-- Inline fallback / single source for Safe-Boot -->
   <script id="__inline_env_json" type="application/json">
   {
     "env": "staging",
@@ -25,7 +25,7 @@
   }
   </script>
 
-  <!-- Robust fetch shim for WKWebView local file:// assets -->
+  <!-- Robust fetch shim for WKWebView local file:// assets (kept, but Safe-Boot does not rely on it) -->
   <script>
   (function () {
     try {
@@ -179,7 +179,7 @@
   })();
   </script>
 
-  <!-- SAFE-BOOT UI: if app.js misses, we still get a working UI -->
+  <!-- SAFE-BOOT UI: render from inline JSON (no fetch) -->
   <script>
   (function(){
     function log(){ try{ console.log.apply(console, arguments); }catch(_){ } }
@@ -218,15 +218,21 @@
       box.innerHTML = lines.join('');
     }
 
+    // Fetchless Safe-Boot: reads inline JSON directly
     function safeInit(){
-      if (window.__pawfuel_ready) { log('DBG: safe boot not needed'); return; }
-      log('DBG: safe boot INIT');
-      initNav();
-      show('pricing');
-      fetch('./Configs/env.json')
-        .then(r=>r.json())
-        .then(cfg=>{ window.__pawfuel_safe_cfg = cfg; renderPricing(cfg); })
-        .catch(e=>{ console.error('DBG: safe boot env error', e); });
+      try {
+        console.log('DBG: safe boot INIT (fetchless)');
+        initNav();
+        show('pricing');
+        var node = document.getElementById('__inline_env_json');
+        var text = node ? (node.textContent || '') : '{}';
+        var cfg = {};
+        try { cfg = JSON.parse(text); } catch(e){ console.error('DBG: inline env parse error', e); }
+        window.__pawfuel_safe_cfg = cfg;
+        renderPricing(cfg);
+      } catch (e) {
+        console.error('DBG: safe boot fatal', e);
+      }
     }
 
     document.addEventListener('DOMContentLoaded', ()=> setTimeout(safeInit, 120));
